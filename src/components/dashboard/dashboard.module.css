@@ -1,0 +1,234 @@
+/* StatCard */
+.statCard {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.statHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.statTitle {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1a3a2a;
+  margin-top: 4px;
+}
+
+.statIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.statValue {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #064e3b; /* Dark green for numbers */
+  line-height: 1.2;
+}
+
+.statSubtitle {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin-top: 8px;
+}
+
+.statTrend {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-top: 8px;
+}
+
+.trendUp {
+  color: #2e7d32;
+  background: #e8f5e9;
+}
+
+.trendDown {
+  color: #c62828;
+  background: #ffebee;
+}
+
+/* Charts */
+.chartCard {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.chartTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1a3a2a;
+  margin-bottom: 20px;
+}
+
+.chartWrapper {
+  position: relative;
+  height: 300px;
+}
+
+/* AlertList */
+.alertCard {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.alertHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.alertHeader h3 {
+  margin: 0;
+}
+
+.alertLink {
+  font-size: 0.875rem;
+  color: #1a3a2a;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.alertList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.alertItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.alertItemWarning {
+  background-color: #fef3c7; /* Light orange */
+}
+
+.alertItemDanger {
+  background-color: #fee2e2; /* Light red */
+}
+
+.alertInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.alertName {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: #1a3a2a;
+}
+
+.alertMeta {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.alertBadge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: white;
+}
+
+.alertBadgeWarning {
+  background-color: #f59e0b;
+}
+
+.alertBadgeDanger {
+  background-color: #dc2626;
+}
+
+/* RecentActivity */
+.activityCard {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.activityList {
+  display: flex;
+  flex-direction: column;
+}
+
+.activityItem {
+  display: flex;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f2f0;
+  position: relative;
+}
+
+.activityItem:last-child {
+  border-bottom: none;
+}
+
+.activityDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+  position: relative;
+  z-index: 2;
+}
+
+.activityLine {
+  position: absolute;
+  left: 4px;
+  top: 22px;
+  width: 2px;
+  height: calc(100% - 10px);
+  background: #f0f2f0;
+  z-index: 1;
+}
+
+.activityContent {
+  flex: 1;
+}
+
+.activityDetail {
+  font-size: 0.875rem;
+  color: #1a3a2a;
+}
+
+.activityMeta {
+  font-size: 0.75rem;
+  color: #6b7c6b;
+  margin-top: 4px;
+}

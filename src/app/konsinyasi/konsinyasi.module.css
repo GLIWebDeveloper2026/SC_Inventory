@@ -1,0 +1,33 @@
+.page { padding: 32px; }
+.summaryRow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.summaryCard { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); text-align: center; }
+.summaryValue { font-size: 1.5rem; font-weight: 700; color: #1a3a2a; }
+.summaryLabel { font-size: 0.8125rem; color: #6b7c6b; margin-top: 4px; }
+.toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 16px; flex-wrap: wrap; }
+.searchWrapper { position: relative; flex: 1; min-width: 240px; max-width: 400px; }
+.searchIcon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #6b7c6b; }
+.searchInput { width: 100%; padding: 10px 16px 10px 42px; border-radius: 10px; border: 1px solid #e0e0e0; font-size: 0.875rem; background: white; }
+.searchInput:focus { border-color: #4CAF50; outline: none; box-shadow: 0 0 0 3px rgba(76,175,80,0.1); }
+.filterSelect { min-width: 160px; }
+.cardGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 20px; }
+.conCard { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+.conCard:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-color: #4CAF50; }
+.conCardHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.conId { font-size: 0.8125rem; color: #6b7c6b; font-family: monospace; }
+.conOwner { font-size: 1.125rem; font-weight: 700; color: #1a3a2a; margin-bottom: 8px; }
+.conDates { font-size: 0.8125rem; color: #6b7c6b; margin-bottom: 16px; display: flex; align-items: center; gap: 6px; }
+.conItemRow { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-top: 1px solid #f0f2f0; }
+.conItemName { font-size: 0.875rem; font-weight: 500; color: #1a3a2a; }
+.conItemProgress { display: flex; align-items: center; gap: 8px; }
+.progressBar { width: 80px; height: 6px; background: #f0f0f0; border-radius: 3px; overflow: hidden; }
+.progressFill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #2e7d32, #4CAF50); }
+.progressText { font-size: 0.75rem; color: #6b7c6b; }
+.conNotes { font-size: 0.8125rem; color: #6b7c6b; font-style: italic; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f0f2f0; }
+.detailGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.detailLabel { font-size: 0.75rem; color: #6b7c6b; text-transform: uppercase; letter-spacing: 0.5px; }
+.detailValue { font-size: 0.9375rem; font-weight: 600; color: #1a3a2a; margin-top: 2px; }
+.emptyState { text-align: center; padding: 60px 20px; color: #6b7c6b; }
+.emptyIcon { font-size: 3rem; margin-bottom: 12px; opacity: 0.5; }
+.emptyText { font-size: 1rem; font-weight: 500; }
+
+@media (max-width: 768px) { .summaryRow { grid-template-columns: repeat(2, 1fr); } .cardGrid { grid-template-columns: 1fr; } .detailGrid { grid-template-columns: 1fr; } }

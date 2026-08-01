@@ -1,0 +1,160 @@
+.page {
+  padding: 32px;
+}
+
+.summaryRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.summaryCard {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  text-align: center;
+}
+
+.summaryValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a3a2a;
+}
+
+.summaryLabel {
+  font-size: 0.8125rem;
+  color: #6b7c6b;
+  margin-top: 4px;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.addBtn {
+  background: linear-gradient(135deg, #2e7d32, #4CAF50);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.addBtn:hover {
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.detailHeader {
+  margin-bottom: 24px;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.detailLabel {
+  font-size: 0.75rem;
+  color: #6b7c6b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detailValue {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #1a3a2a;
+  margin-top: 2px;
+}
+
+.formGroup {
+  margin-bottom: 16px;
+}
+
+.formLabel {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: #1a3a2a;
+}
+
+.formInput {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.formInput:focus {
+  border-color: #4CAF50;
+  outline: none;
+}
+
+.formTextarea {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  min-height: 80px;
+  resize: vertical;
+}
+
+.formTextarea:focus {
+  border-color: #4CAF50;
+  outline: none;
+}
+
+.formActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+  margin-top: 16px;
+}
+
+.btnDraft {
+  background: #f5f7f5;
+  color: #1a3a2a;
+  border: 1px solid #ddd;
+  padding: 10px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btnFinalize {
+  background: linear-gradient(135deg, #2e7d32, #4CAF50);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .summaryRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

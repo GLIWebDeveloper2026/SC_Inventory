@@ -1,0 +1,162 @@
+.sidebar {
+  width: var(--sidebar-width);
+  height: 100vh;
+  background: white;
+  border-right: 1px solid #e8ece8;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  transition: width var(--transition-slow), transform var(--transition-slow);
+}
+
+.sidebar.collapsed {
+  width: var(--sidebar-collapsed);
+}
+
+.logoSection {
+  height: var(--header-height);
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #e8ece8;
+  gap: 12px;
+}
+
+.collapsed .logoSection {
+  justify-content: center;
+}
+
+.logoIcon {
+  width: 32px;
+  height: 32px;
+  color: #4CAF50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.logoText {
+  font-weight: 800;
+  font-size: 1.125rem;
+  color: #1a3a2a;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toggleBtn {
+  background: none;
+  border: none;
+  color: #6b7c6b;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggleBtn:hover {
+  background: rgba(0,0,0,0.04);
+}
+
+.navArea {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  color: #6b7c6b;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: var(--transition-fast);
+  cursor: pointer;
+}
+
+.collapsed .navItem {
+  justify-content: center;
+}
+
+.navItem:hover {
+  background: #f0f4f0;
+  color: #1a3a2a;
+}
+
+.navItem.active {
+  background: #e8f5e9;
+  color: #4CAF50;
+}
+
+.submenuContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.chevron {
+  margin-left: auto;
+  transition: transform var(--transition-fast);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.submenu {
+  display: flex;
+  flex-direction: column;
+  margin-left: 20px;
+  padding-left: 12px;
+  border-left: 1px solid #e8ece8;
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+.submenuItem {
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+  color: #6b7c6b;
+  border-radius: 6px;
+  transition: var(--transition-fast);
+}
+
+.submenuItem:hover {
+  background: #f0f4f0;
+  color: #1a3a2a;
+}
+
+.submenuItem.activeSub {
+  color: #4CAF50;
+  font-weight: 600;
+}
+
+/* Hide default toggle button on mobile since we use Header hamburger */
+@media (max-width: 1024px) {
+  .toggleBtn {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  
+  .sidebar.mobileOpen {
+    transform: translateX(0);
+    box-shadow: var(--shadow-lg);
+  }
+}

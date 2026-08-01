@@ -1,0 +1,36 @@
+.page { padding: 32px; }
+.tabs { display: flex; gap: 4px; background: #f0f4f0; padding: 4px; border-radius: 12px; margin-bottom: 24px; width: fit-content; }
+.tab { padding: 10px 24px; border-radius: 8px; border: none; background: transparent; cursor: pointer; font-size: 0.875rem; font-weight: 500; color: #6b7c6b; transition: all 0.2s; }
+.tab:hover { color: #1a3a2a; }
+.tabActive { background: white; color: #2e7d32; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.filterRow { display: flex; gap: 16px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+.dateGroup { display: flex; align-items: center; gap: 8px; }
+.dateLabel { font-size: 0.8125rem; color: #6b7c6b; font-weight: 500; }
+.dateInput { padding: 10px 14px; border-radius: 8px; border: 1px solid #e0e0e0; font-size: 0.875rem; background: white; }
+.dateInput:focus { border-color: #4CAF50; outline: none; }
+.searchInput { padding: 10px 14px; border-radius: 8px; border: 1px solid #e0e0e0; font-size: 0.875rem; flex: 1; min-width: 200px; background: white; }
+.searchInput:focus { border-color: #4CAF50; outline: none; }
+.exportRow { display: flex; gap: 12px; margin-bottom: 24px; }
+.exportBtn { padding: 10px 20px; border-radius: 8px; border: 1px solid #e0e0e0; background: white; cursor: pointer; font-size: 0.8125rem; font-weight: 500; display: flex; align-items: center; gap: 8px; transition: all 0.2s; color: #1a3a2a; }
+.exportBtn:hover { border-color: #4CAF50; background: #f8faf8; }
+.exportBtnPdf { border-color: #e53935; color: #e53935; }
+.exportBtnPdf:hover { background: #ffebee; }
+.exportBtnExcel { border-color: #2e7d32; color: #2e7d32; }
+.exportBtnExcel:hover { background: #e8f5e9; }
+.exportBtnCsv { border-color: #1565c0; color: #1565c0; }
+.exportBtnCsv:hover { background: #e3f2fd; }
+.reportTable { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.reportTable th { padding: 14px 16px; text-align: left; font-weight: 600; font-size: 0.8125rem; color: #6b7c6b; background: #f8faf8; border-bottom: 2px solid #e8ece8; text-transform: uppercase; letter-spacing: 0.5px; }
+.reportTable td { padding: 12px 16px; font-size: 0.875rem; border-bottom: 1px solid #f0f2f0; }
+.reportTable tr:hover { background: #f8faf8; }
+.reportTable tr:last-child td { border-bottom: none; }
+.summaryBox { background: white; border-radius: 12px; padding: 20px 24px; margin-top: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; justify-content: space-around; flex-wrap: wrap; gap: 20px; }
+.summaryItem { text-align: center; }
+.summaryItemValue { font-size: 1.25rem; font-weight: 700; color: #1a3a2a; }
+.summaryItemLabel { font-size: 0.75rem; color: #6b7c6b; margin-top: 4px; }
+.codeCell { font-family: monospace; font-size: 0.8125rem; color: #1565c0; }
+.diffNeg { color: #c62828; font-weight: 600; }
+.diffPos { color: #2e7d32; font-weight: 600; }
+.diffZero { color: #757575; }
+
+@media (max-width: 768px) { .tabs { flex-wrap: wrap; } .filterRow { flex-direction: column; align-items: stretch; } .exportRow { flex-wrap: wrap; } .summaryBox { flex-direction: column; } }

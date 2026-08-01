@@ -1,0 +1,112 @@
+.selectContainer {
+  position: relative;
+  display: inline-block;
+  min-width: 160px;
+}
+
+.selectTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 40px 10px 16px;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  color: #1a3a2a;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+  position: relative;
+  text-align: left;
+  user-select: none;
+}
+
+.selectTrigger:hover {
+  border-color: #4CAF50;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.12);
+  background-color: #ffffff;
+}
+
+.selectTriggerActive {
+  border-color: #2e7d32 !important;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.18) !important;
+  background-color: #ffffff !important;
+}
+
+.selectValue {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 4px;
+}
+
+.chevron {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #2e7d32;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.chevronOpen {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.selectDropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  min-width: 100%;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  z-index: 500;
+  max-height: 260px;
+  overflow-y: auto;
+  animation: dropIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.optionItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: #1a3a2a;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.optionItem:hover {
+  background-color: #f0fdf4;
+  color: #2e7d32;
+}
+
+.optionSelected {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  font-weight: 700;
+}
+
+@keyframes dropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
