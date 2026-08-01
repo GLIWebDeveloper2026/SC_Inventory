@@ -3,12 +3,21 @@
 import { Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import styles from './dashboard.module.css';
-import { getCategoryDistribution } from '@/lib/dummy-data';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-export default function CategoryChart() {
-  const distribution = getCategoryDistribution();
+export default function CategoryChart({ data: distribution }) {
+  if (!distribution || distribution.length === 0) {
+    return (
+      <div className={styles.chartCard}>
+        <h3 className={styles.chartTitle}>Barang per Kategori</h3>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+          Belum ada data
+        </div>
+      </div>
+    );
+  }
+
   const total = distribution.reduce((sum, item) => sum + item.count, 0);
 
   const data = {
@@ -45,7 +54,7 @@ export default function CategoryChart() {
       // Sub label
       ctx.font = '0.75rem Inter, sans-serif';
       ctx.fillStyle = '#6b7c6b';
-      ctx.fillText('Items', centerX, centerY + 14);
+      ctx.fillText('Barang', centerX, centerY + 14);
 
       ctx.restore();
     },
@@ -63,7 +72,7 @@ export default function CategoryChart() {
 
   return (
     <div className={styles.chartCard}>
-      <h3 className={styles.chartTitle}>Items by Category</h3>
+      <h3 className={styles.chartTitle}>Barang per Kategori</h3>
       <div className={styles.chartWrapper}>
         <Doughnut data={data} options={options} plugins={[centerTextPlugin]} />
       </div>

@@ -7,7 +7,7 @@
 .toolbarLeft { display: flex; gap: 12px; flex: 1; flex-wrap: wrap; }
 .searchWrapper { position: relative; flex: 1; min-width: 200px; max-width: 360px; }
 .searchIcon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #6b7c6b; }
-.searchInput { width: 100%; padding: 10px 16px 10px 42px; border-radius: 10px; border: 1px solid #e0e0e0; font-size: 0.875rem; background: white; }
+.searchInput { width: 100%; padding: 10px 16px 10px 42px !important; border-radius: 10px; border: 1px solid #e0e0e0; font-size: 0.875rem; background: white; }
 .searchInput:focus { border-color: #4CAF50; outline: none; box-shadow: 0 0 0 3px rgba(76,175,80,0.1); }
 .filterSelect { min-width: 160px; }
 .addBtn { background: linear-gradient(135deg, #2e7d32, #4CAF50); color: white; border: none; padding: 10px 24px; border-radius: 10px; font-weight: 600; font-size: 0.875rem; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; box-shadow: 0 2px 8px rgba(46,125,50,0.3); }
@@ -21,11 +21,14 @@
 .userMeta { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .userPhone { font-size: 0.75rem; color: #6b7c6b; margin-top: 6px; }
 .userLogin { font-size: 0.75rem; color: #a0b0a0; margin-top: 4px; }
-.sectionTitle { font-size: 1.25rem; font-weight: 700; color: #1a3a2a; margin-bottom: 16px; }
-.roleGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
-.roleCard { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-left: 4px solid; }
-.roleName { font-size: 0.9375rem; font-weight: 700; color: #1a3a2a; margin-bottom: 4px; }
-.roleDesc { font-size: 0.8125rem; color: #6b7c6b; line-height: 1.5; }
+.sectionTitle { font-size: 1.125rem; font-weight: 700; color: #1f2937; margin-bottom: 16px; margin-top: 12px; }
+.roleGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.roleCard { background: white; border-radius: 16px; padding: 20px; border: 1px solid #e5e7eb; box-shadow: var(--shadow-sm); transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
+.roleCard:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: #d1d5db; }
+.roleHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.roleName { font-size: 0.9375rem; font-weight: 700; color: #1f2937; }
+.roleBadge { font-size: 0.6875rem; font-weight: 700; padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
+.roleDesc { font-size: 0.8125rem; color: #6b7280; line-height: 1.5; }
 .detailGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
 .detailLabel { font-size: 0.75rem; color: #6b7c6b; text-transform: uppercase; letter-spacing: 0.5px; }
 .detailValue { font-size: 0.9375rem; font-weight: 600; color: #1a3a2a; margin-top: 2px; }

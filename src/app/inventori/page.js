@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { items, categories, uoms, getStockStatus, getCategoryById, getUomById, formatNumber, formatCurrency } from '@/lib/dummy-data'
+import { useState, useEffect } from 'react'
+import { getItems, createItem, updateItem, deleteItem } from '@/app/actions/items'
+import { getCategories } from '@/app/actions/categories'
+import { getUoms } from '@/app/actions/uoms'
 import Header from '@/components/layout/Header'
 import DataTable from '@/components/ui/DataTable'
 import Badge from '@/components/ui/Badge'
@@ -9,68 +11,136 @@ import Modal from '@/components/ui/Modal'
 import CustomSelect from '@/components/ui/CustomSelect'
 import styles from './inventori.module.css'
 
+const formatNumber = (num) => new Intl.NumberFormat('id-ID').format(num || 0)
+const formatCurrency = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num || 0)
+const getStockStatus = (item) => {
+  if (Number(item.stock) <= 0) return { label: 'Habis', variant: 'danger' }
+  if (Number(item.stock) < Number(item.min_stock)) return { label: 'Rendah', variant: 'warning' }
+  return { label: 'Aman', variant: 'success' }
+}
+
 export default function InventoriPage() {
+  const [items, setItems] = useState([])
+  const [categories, setCategories] = useState([])
+  const [uoms, setUoms] = useState([])
+  const [loading, setLoading] = useState(true)
+
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [selectedItem, setSelectedItem] = useState(null)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [formData, setFormData] = useState({
+    code: '', name: '', categoryId: '', baseUom: '', stock: 0, minStock: 0, price: 0, location: ''
+  })
+
+  async function loadData() {
+    setLoading(true)
+    try {
+      const [itemsResult, catsResult, uomsResult] = await Promise.all([
+        getItems(), getCategories(), getUoms()
+      ])
+      console.log('[Inventori] getCategories result:', catsResult)
+      console.log('[Inventori] getUoms result:', uomsResult)
+      const itemsData = itemsResult?.data || itemsResult || []
+      const catsData = catsResult?.data || catsResult || []
+      const uomsData = uomsResult?.data || uomsResult || []
+      setItems(Array.isArray(itemsData) ? itemsData : [])
+      setCategories(Array.isArray(catsData) ? catsData : [])
+      setUoms(Array.isArray(uomsData) ? uomsData : [])
+      console.log('[Inventori] categories loaded:', catsData?.length, 'uoms loaded:', uomsData?.length)
+    } catch (err) {
+      console.error('Gagal memuat data inventori:', err)
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    loadData()
+  }, [])
 
   const filteredItems = items.filter(item => {
-    const matchesSearch = item.code.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          item.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = categoryFilter ? item.categoryId === categoryFilter : true
+    const matchesSearch = item.code?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          item.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesCategory = categoryFilter ? item.category_id === categoryFilter : true
     return matchesSearch && matchesCategory
   })
 
   const totalItems = items.length
-  const stokAman = items.filter(item => item.stock >= item.minStock).length
-  const stokRendah = items.filter(item => item.stock < item.minStock && item.stock > 0).length
-  const stokKritis = items.filter(item => item.stock <= item.minStock * 0.5).length
+  const stokAman = items.filter(item => Number(item.stock) >= Number(item.min_stock)).length
+  const stokRendah = items.filter(item => Number(item.stock) < Number(item.min_stock) && Number(item.stock) > 0).length
+  const stokKritis = items.filter(item => Number(item.stock) <= Number(item.min_stock) * 0.5).length
+
+  const handleSaveAdd = async () => {
+    const result = await createItem(formData)
+    if (result?.error) {
+      console.error('Gagal menambahkan barang:', result.error)
+      alert('Gagal menambahkan barang: ' + result.error)
+      return
+    }
+    setShowAddModal(false)
+    setFormData({ code: '', name: '', categoryId: '', baseUom: '', stock: 0, minStock: 0, price: 0, location: '' })
+    loadData()
+  }
+
+  const handleEdit = async () => {
+    if (selectedItem) {
+      await updateItem(selectedItem.id, selectedItem)
+      setSelectedItem(null)
+      loadData()
+    }
+  }
+
+  const handleDelete = async () => {
+    if (selectedItem) {
+      await deleteItem(selectedItem.id)
+      setSelectedItem(null)
+      loadData()
+    }
+  }
 
   const columns = [
     { 
-      header: 'Kode', 
-      accessor: (item) => <span className={styles.codeCell}>{item.code}</span> 
+      label: 'Kode', 
+      render: (item) => <span className={styles.codeCell}>{item.code}</span> 
     },
     { 
-      header: 'Nama Barang', 
-      accessor: 'name' 
+      label: 'Nama Barang', 
+      key: 'name' 
     },
     { 
-      header: 'Kategori', 
-      accessor: (item) => {
-        const category = getCategoryById(item.categoryId)
+      label: 'Kategori', 
+      render: (item) => {
         return (
           <span>
-            <span className={styles.categoryDot} style={{ backgroundColor: category?.color || '#ccc' }}></span>
-            {category?.name}
+            <span className={styles.categoryDot} style={{ backgroundColor: item.categories?.color || '#ccc' }}></span>
+            {item.categories?.name || '-'}
           </span>
         )
       } 
     },
     { 
-      header: 'Satuan', 
-      accessor: (item) => getUomById(item.baseUom)?.symbol 
+      label: 'Satuan', 
+      render: (item) => item.uoms?.symbol || '-'
     },
     { 
-      header: 'Stok', 
-      accessor: (item) => formatNumber(item.stock) 
+      label: 'Stok', 
+      render: (item) => formatNumber(item.stock) 
     },
     { 
-      header: 'Min. Stok', 
-      accessor: (item) => formatNumber(item.minStock) 
+      label: 'Min. Stok', 
+      render: (item) => formatNumber(item.min_stock) 
     },
     { 
-      header: 'Harga', 
-      accessor: (item) => formatCurrency(item.price) 
+      label: 'Harga', 
+      render: (item) => formatCurrency(item.price) 
     },
     { 
-      header: 'Lokasi', 
-      accessor: 'location' 
+      label: 'Lokasi', 
+      key: 'location' 
     },
     { 
-      header: 'Status', 
-      accessor: (item) => {
+      label: 'Status', 
+      render: (item) => {
         const status = getStockStatus(item)
         return <Badge variant={status.variant}>{status.label}</Badge>
       } 
@@ -85,28 +155,28 @@ export default function InventoriPage() {
         <div className={styles.miniCard}>
           <div className={styles.miniCardIcon} style={{ backgroundColor: '#e3f2fd', color: '#1565c0' }}>📦</div>
           <div>
-            <div className={styles.miniCardValue}>{totalItems}</div>
+            <div className={styles.miniCardValue}>{loading ? '...' : totalItems}</div>
             <div className={styles.miniCardLabel}>Total Barang</div>
           </div>
         </div>
         <div className={styles.miniCard}>
           <div className={styles.miniCardIcon} style={{ backgroundColor: '#e8f5e9', color: '#2e7d32' }}>✅</div>
           <div>
-            <div className={styles.miniCardValue}>{stokAman}</div>
+            <div className={styles.miniCardValue}>{loading ? '...' : stokAman}</div>
             <div className={styles.miniCardLabel}>Stok Aman</div>
           </div>
         </div>
         <div className={styles.miniCard}>
           <div className={styles.miniCardIcon} style={{ backgroundColor: '#fff8e1', color: '#f57f17' }}>⚠️</div>
           <div>
-            <div className={styles.miniCardValue}>{stokRendah}</div>
+            <div className={styles.miniCardValue}>{loading ? '...' : stokRendah}</div>
             <div className={styles.miniCardLabel}>Stok Rendah</div>
           </div>
         </div>
         <div className={styles.miniCard}>
           <div className={styles.miniCardIcon} style={{ backgroundColor: '#ffebee', color: '#c62828' }}>🚨</div>
           <div>
-            <div className={styles.miniCardValue}>{stokKritis}</div>
+            <div className={styles.miniCardValue}>{loading ? '...' : stokKritis}</div>
             <div className={styles.miniCardLabel}>Stok Kritis</div>
           </div>
         </div>
@@ -138,11 +208,15 @@ export default function InventoriPage() {
         </button>
       </div>
 
-      <DataTable 
-        data={filteredItems} 
-        columns={columns} 
-        onRowClick={(item) => setSelectedItem(item)} 
-      />
+      {loading ? (
+        <div style={{ padding: '20px', textAlign: 'center', color: '#6b7c6b' }}>Memuat data barang...</div>
+      ) : (
+        <DataTable 
+          data={filteredItems} 
+          columns={columns} 
+          onRowClick={(item) => setSelectedItem(item)} 
+        />
+      )}
 
       {/* Detail Modal */}
       <Modal 
@@ -165,7 +239,7 @@ export default function InventoriPage() {
                 <div className={styles.detailItem}>
                   <div className={styles.detailLabel}>Kategori</div>
                   <div className={styles.detailValue}>
-                    {getCategoryById(selectedItem.categoryId)?.name}
+                    {selectedItem.categories?.name}
                   </div>
                 </div>
                 <div className={styles.detailItem}>
@@ -183,14 +257,14 @@ export default function InventoriPage() {
                 <div className={styles.detailItem}>
                   <div className={styles.detailLabel}>Stok Saat Ini</div>
                   <div className={styles.detailValue}>
-                    {formatNumber(selectedItem.stock)} {getUomById(selectedItem.baseUom)?.symbol}
+                    {formatNumber(selectedItem.stock)} {selectedItem.uoms?.symbol}
                   </div>
                   <div className={styles.stockBar}>
                     <div 
                       className={styles.stockBarFill} 
                       style={{ 
-                        width: `${Math.min(100, (selectedItem.stock / Math.max(selectedItem.minStock * 2, 1)) * 100)}%`,
-                        backgroundColor: selectedItem.stock < selectedItem.minStock ? '#f44336' : '#4CAF50'
+                        width: `${Math.min(100, (selectedItem.stock / Math.max(selectedItem.min_stock * 2, 1)) * 100)}%`,
+                        backgroundColor: selectedItem.stock < selectedItem.min_stock ? '#f44336' : '#4CAF50'
                       }}
                     />
                   </div>
@@ -198,14 +272,14 @@ export default function InventoriPage() {
                 <div className={styles.detailItem}>
                   <div className={styles.detailLabel}>Stok Minimum</div>
                   <div className={styles.detailValue}>
-                    {formatNumber(selectedItem.minStock)} {getUomById(selectedItem.baseUom)?.symbol}
+                    {formatNumber(selectedItem.min_stock)} {selectedItem.uoms?.symbol}
                   </div>
                 </div>
               </div>
             </div>
             <div className={styles.actionRow}>
-              <button className={styles.btnEdit} onClick={() => alert('Edit fitur UI only')}>Edit</button>
-              <button className={styles.btnDelete} onClick={() => alert('Hapus fitur UI only')}>Hapus</button>
+              <button className={styles.btnEdit} onClick={handleEdit}>Edit</button>
+              <button className={styles.btnDelete} onClick={handleDelete}>Hapus</button>
             </div>
           </div>
         )}
@@ -221,17 +295,18 @@ export default function InventoriPage() {
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Kode Barang</label>
-              <input type="text" className={styles.formInput} placeholder="Masukkan kode" />
+              <input type="text" className={styles.formInput} placeholder="Masukkan kode" value={formData.code} onChange={(e) => setFormData({...formData, code: e.target.value})} />
             </div>
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Nama Barang</label>
-              <input type="text" className={styles.formInput} placeholder="Masukkan nama" />
+              <input type="text" className={styles.formInput} placeholder="Masukkan nama" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
             </div>
           </div>
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Kategori</label>
-              <select className={styles.formInput}>
+              <select className={styles.formInput} value={formData.categoryId} onChange={(e) => setFormData({...formData, categoryId: e.target.value})}>
+                <option value="">Pilih Kategori</option>
                 {categories.map(cat => (
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
@@ -239,7 +314,8 @@ export default function InventoriPage() {
             </div>
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Satuan Dasar</label>
-              <select className={styles.formInput}>
+              <select className={styles.formInput} value={formData.baseUom} onChange={(e) => setFormData({...formData, baseUom: e.target.value})}>
+                <option value="">Pilih Satuan</option>
                 {uoms.map(uom => (
                   <option key={uom.id} value={uom.id}>{uom.name} ({uom.symbol})</option>
                 ))}
@@ -249,26 +325,26 @@ export default function InventoriPage() {
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Stok Awal</label>
-              <input type="number" className={styles.formInput} placeholder="0" />
+              <input type="number" className={styles.formInput} placeholder="0" min="0" value={formData.stock} onChange={(e) => setFormData({...formData, stock: Number(e.target.value)})} />
             </div>
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Stok Minimum</label>
-              <input type="number" className={styles.formInput} placeholder="0" />
+              <input type="number" className={styles.formInput} placeholder="0" min="0" value={formData.minStock} onChange={(e) => setFormData({...formData, minStock: Number(e.target.value)})} />
             </div>
           </div>
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Harga</label>
-              <input type="number" className={styles.formInput} placeholder="0" />
+              <input type="number" className={styles.formInput} placeholder="0" value={formData.price} onChange={(e) => setFormData({...formData, price: Number(e.target.value)})} />
             </div>
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Lokasi</label>
-              <input type="text" className={styles.formInput} placeholder="Contoh: Rak A1" />
+              <input type="text" className={styles.formInput} placeholder="Contoh: Rak A1" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} />
             </div>
           </div>
           <div className={styles.formActions}>
             <button className={styles.btnCancel} onClick={() => setShowAddModal(false)}>Batal</button>
-            <button className={styles.btnSave} onClick={() => setShowAddModal(false)}>Simpan</button>
+            <button className={styles.btnSave} onClick={handleSaveAdd}>Simpan</button>
           </div>
         </div>
       </Modal>

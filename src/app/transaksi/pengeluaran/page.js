@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState } from 'react';
-import { issues, getItemById, getUomById, getUserById, formatCurrency, formatDate, formatNumber } from '@/lib/dummy-data';
+import React, { useState, useEffect } from 'react';
+import { getIssues, createIssue, finalizeIssue, deleteIssue } from '@/app/actions/issues';
+import { getItems } from '@/app/actions/items';
 import Header from '@/components/layout/Header';
 import DataTable from '@/components/ui/DataTable';
 import Badge from '@/components/ui/Badge';
@@ -10,28 +11,78 @@ import SearchBar from '@/components/ui/SearchBar';
 import CustomSelect from '@/components/ui/CustomSelect';
 import styles from './pengeluaran.module.css';
 
+const formatNumber = (num) => new Intl.NumberFormat('id-ID').format(num || 0);
+const formatCurrency = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num || 0);
+const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString('id-ID') : '-';
+
 export default function PengeluaranPage() {
+  const [issues, setIssues] = useState([]);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Semua');
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
+  // Form State
+  const [formData, setFormData] = useState({ destination: '', date: '', notes: '' });
+  const [formItems, setFormItems] = useState([{ item_id: '', qty: 0, price: 0 }]);
+
+  async function loadData() {
+    setLoading(true);
+    const [issuesRes, itemsRes] = await Promise.all([
+      getIssues(),
+      getItems()
+    ]);
+    setIssues(issuesRes?.data || []);
+    setItems(itemsRes?.data || []);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
   // Filter logic
   const filteredIssues = issues.filter(issue => {
-    const matchesSearch = issue.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          issue.destination.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = issue.issue_code?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          issue.destination?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'Semua' || issue.status === statusFilter.toLowerCase();
     return matchesSearch && matchesStatus;
   });
 
   // Summary
   const totalPengeluaran = issues.length;
-  const nilaiTotal = issues.reduce((sum, i) => sum + i.total, 0);
+  const nilaiTotal = issues.reduce((sum, i) => sum + (i.total || 0), 0);
   const totalDraft = issues.filter(i => i.status === 'draft').length;
   const totalFinal = issues.filter(i => i.status === 'final').length;
 
+  const handleCreate = async (status) => {
+    const payload = {
+      ...formData,
+      status,
+      issue_items: formItems.map(item => ({
+        item_id: item.item_id,
+        qty: Number(item.qty),
+        price: Number(item.price)
+      }))
+    };
+    await createIssue(payload);
+    setIsAddModalOpen(false);
+    setFormData({ destination: '', date: '', notes: '' });
+    setFormItems([{ item_id: '', qty: 0, price: 0 }]);
+    loadData();
+  };
+
+  const handleFinalize = async (id) => {
+    await finalizeIssue(id);
+    setSelectedIssue(null);
+    loadData();
+  };
+
   const columns = [
-    { key: 'id', label: 'No. Transaksi' },
+    { key: 'issue_code', label: 'No. Transaksi' },
     { key: 'date', label: 'Tanggal', render: (val) => formatDate(val) },
     { key: 'destination', label: 'Tujuan' },
     { key: 'status', label: 'Status', render: (val) => (
@@ -41,7 +92,7 @@ export default function PengeluaranPage() {
       )
     },
     { key: 'total', label: 'Total', render: (val) => formatCurrency(val) },
-    { key: 'createdBy', label: 'Dibuat Oleh', render: (val) => getUserById(val)?.name || 'Unknown' }
+    { key: 'created_by', label: 'Dibuat Oleh', render: (val, row) => row.users?.name || 'Tidak diketahui' }
   ];
 
   return (
@@ -50,19 +101,19 @@ export default function PengeluaranPage() {
 
       <div className={styles.summaryRow}>
         <div className={styles.summaryCard}>
-          <div className={styles.summaryValue}>{totalPengeluaran}</div>
+          <div className={styles.summaryValue}>{loading ? '...' : totalPengeluaran}</div>
           <div className={styles.summaryLabel}>Total Pengeluaran</div>
         </div>
         <div className={styles.summaryCard}>
-          <div className={styles.summaryValue}>{formatCurrency(nilaiTotal)}</div>
+          <div className={styles.summaryValue}>{loading ? '...' : formatCurrency(nilaiTotal)}</div>
           <div className={styles.summaryLabel}>Nilai Total</div>
         </div>
         <div className={styles.summaryCard}>
-          <div className={styles.summaryValue}>{totalDraft}</div>
+          <div className={styles.summaryValue}>{loading ? '...' : totalDraft}</div>
           <div className={styles.summaryLabel}>Draft</div>
         </div>
         <div className={styles.summaryCard}>
-          <div className={styles.summaryValue}>{totalFinal}</div>
+          <div className={styles.summaryValue}>{loading ? '...' : totalFinal}</div>
           <div className={styles.summaryLabel}>Final</div>
         </div>
       </div>
@@ -92,12 +143,16 @@ export default function PengeluaranPage() {
         </button>
       </div>
 
-      <DataTable 
-        columns={columns} 
-        data={filteredIssues} 
-        onRowClick={(row) => setSelectedIssue(row)}
-        emptyMessage="Tidak ada data pengeluaran yang ditemukan"
-      />
+      {loading ? (
+        <div style={{ padding: '20px', textAlign: 'center', color: '#6b7c6b' }}>Memuat data pengeluaran...</div>
+      ) : (
+        <DataTable 
+          columns={columns} 
+          data={filteredIssues} 
+          onRowClick={(row) => setSelectedIssue(row)}
+          emptyMessage="Tidak ada data pengeluaran yang ditemukan"
+        />
+      )}
 
       <Modal 
         isOpen={!!selectedIssue} 
@@ -111,7 +166,7 @@ export default function PengeluaranPage() {
               <div className={styles.detailGrid}>
                 <div>
                   <div className={styles.detailLabel}>No. Transaksi</div>
-                  <div className={styles.detailValue}>{selectedIssue.id}</div>
+                  <div className={styles.detailValue}>{selectedIssue.issue_code}</div>
                 </div>
                 <div>
                   <div className={styles.detailLabel}>Tanggal</div>
@@ -137,23 +192,19 @@ export default function PengeluaranPage() {
                 <tr style={{ borderBottom: '1px solid #ddd', textAlign: 'left' }}>
                   <th style={{ padding: '8px' }}>Barang</th>
                   <th style={{ padding: '8px' }}>Qty</th>
-                  <th style={{ padding: '8px' }}>UOM</th>
                   <th style={{ padding: '8px' }}>Harga</th>
                   <th style={{ padding: '8px' }}>Subtotal</th>
                   <th style={{ padding: '8px' }}>Catatan</th>
                 </tr>
               </thead>
               <tbody>
-                {selectedIssue.items.map((item, idx) => {
-                  const itemData = getItemById(item.itemId);
-                  const uomData = itemData ? getUomById(itemData.uomId) : null;
+                {(selectedIssue.issue_items || []).map((item, idx) => {
                   return (
                     <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={{ padding: '8px' }}>{itemData?.name || 'Unknown'}</td>
+                      <td style={{ padding: '8px' }}>{item.items?.name || 'Tidak diketahui'}</td>
                       <td style={{ padding: '8px' }}>{formatNumber(item.qty)}</td>
-                      <td style={{ padding: '8px' }}>{uomData?.symbol || ''}</td>
                       <td style={{ padding: '8px' }}>{formatCurrency(item.price)}</td>
-                      <td style={{ padding: '8px' }}>{formatCurrency(item.subtotal)}</td>
+                      <td style={{ padding: '8px' }}>{formatCurrency((item.qty || 0) * (item.price || 0))}</td>
                       <td style={{ padding: '8px' }}>{item.notes || '-'}</td>
                     </tr>
                   )
@@ -164,6 +215,13 @@ export default function PengeluaranPage() {
             <div style={{ marginTop: '20px', textAlign: 'right', fontWeight: 'bold' }}>
               Total: {formatCurrency(selectedIssue.total)}
             </div>
+            {selectedIssue.status === 'draft' && (
+               <div style={{ marginTop: '20px', textAlign: 'right' }}>
+                 <button className={styles.btnFinalize} onClick={() => handleFinalize(selectedIssue.id)}>
+                   Finalisasi Transaksi
+                 </button>
+               </div>
+            )}
           </div>
         )}
       </Modal>
@@ -178,16 +236,16 @@ export default function PengeluaranPage() {
           <div className={styles.detailGrid}>
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Tujuan</label>
-              <input type="text" className={styles.formInput} placeholder="Tujuan pengeluaran" />
+              <input type="text" className={styles.formInput} placeholder="Tujuan pengeluaran" value={formData.destination} onChange={e => setFormData({...formData, destination: e.target.value})} />
             </div>
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Tanggal</label>
-              <input type="date" className={styles.formInput} />
+              <input type="date" className={styles.formInput} value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
             </div>
           </div>
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>Catatan</label>
-            <textarea className={styles.formTextarea} placeholder="Catatan tambahan..."></textarea>
+            <textarea className={styles.formTextarea} placeholder="Catatan tambahan..." value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})}></textarea>
           </div>
           
           <div style={{ marginTop: '20px' }}>
@@ -197,24 +255,42 @@ export default function PengeluaranPage() {
                 <tr style={{ borderBottom: '1px solid #ddd', textAlign: 'left' }}>
                   <th style={{ padding: '8px' }}>Barang</th>
                   <th style={{ padding: '8px' }}>Qty</th>
-                  <th style={{ padding: '8px' }}>UOM</th>
                   <th style={{ padding: '8px' }}>Harga</th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td style={{ padding: '8px' }}><select className={styles.formInput}><option>Pilih barang...</option></select></td>
-                  <td style={{ padding: '8px' }}><input type="number" className={styles.formInput} placeholder="0" /></td>
-                  <td style={{ padding: '8px' }}><input type="text" className={styles.formInput} placeholder="Kg" readOnly style={{backgroundColor: '#f5f5f5'}} /></td>
-                  <td style={{ padding: '8px' }}><input type="number" className={styles.formInput} placeholder="0" /></td>
-                </tr>
+                {formItems.map((fi, i) => (
+                  <tr key={i}>
+                    <td style={{ padding: '8px' }}>
+                      <select className={styles.formInput} value={fi.item_id} onChange={e => {
+                        const newItems = [...formItems];
+                        newItems[i].item_id = e.target.value;
+                        setFormItems(newItems);
+                      }}>
+                        <option value="">Pilih barang...</option>
+                        {items.map(it => <option key={it.id} value={it.id}>{it.name}</option>)}
+                      </select>
+                    </td>
+                    <td style={{ padding: '8px' }}><input type="number" className={styles.formInput} placeholder="0" value={fi.qty} onChange={e => {
+                        const newItems = [...formItems];
+                        newItems[i].qty = e.target.value;
+                        setFormItems(newItems);
+                      }} /></td>
+                    <td style={{ padding: '8px' }}><input type="number" className={styles.formInput} placeholder="0" value={fi.price} onChange={e => {
+                        const newItems = [...formItems];
+                        newItems[i].price = e.target.value;
+                        setFormItems(newItems);
+                      }} /></td>
+                  </tr>
+                ))}
               </tbody>
             </table>
+            <button type="button" onClick={() => setFormItems([...formItems, { item_id: '', qty: 0, price: 0 }])} style={{ marginTop: '8px', padding: '4px 8px' }}>+ Tambah Baris</button>
           </div>
 
           <div className={styles.formActions}>
-            <button className={styles.btnDraft} onClick={() => setIsAddModalOpen(false)}>Simpan as Draft</button>
-            <button className={styles.btnFinalize} onClick={() => setIsAddModalOpen(false)}>Finalisasi</button>
+            <button className={styles.btnDraft} onClick={() => handleCreate('draft')}>Simpan as Draft</button>
+            <button className={styles.btnFinalize} onClick={() => handleCreate('final')}>Finalisasi</button>
           </div>
         </div>
       </Modal>

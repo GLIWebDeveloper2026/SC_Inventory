@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { consignments, getItemById, getUomById, formatDate, formatNumber } from '@/lib/dummy-data'
+import { useState, useEffect } from 'react'
+import { getConsignments, createConsignment, updateConsignmentStatus } from '@/app/actions/consignments'
 import Header from '@/components/layout/Header'
 import DataTable from '@/components/ui/DataTable'
 import Badge from '@/components/ui/Badge'
@@ -9,14 +9,41 @@ import Modal from '@/components/ui/Modal'
 import CustomSelect from '@/components/ui/CustomSelect'
 import styles from './konsinyasi.module.css'
 
+const formatNumber = (num) => new Intl.NumberFormat('id-ID').format(num || 0)
+const formatDate = (dateString) => {
+  if (!dateString) return '-'
+  const date = new Date(dateString)
+  return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(date)
+}
+
 export default function KonsinyasiPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [selectedConsignment, setSelectedConsignment] = useState(null)
+  const [consignments, setConsignments] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchConsignments = async () => {
+    setLoading(true)
+    try {
+      const res = await getConsignments()
+      if (res?.data) {
+        setConsignments(res.data)
+      }
+    } catch (error) {
+      console.error('Error fetching consignments:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchConsignments()
+  }, [])
 
   const filteredConsignments = consignments.filter(con => {
-    const matchesSearch = con.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          con.ownerName.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = (con.consignment_code || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (con.owner_name || '').toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter ? con.status === statusFilter : true
     return matchesSearch && matchesStatus
   })
@@ -31,8 +58,14 @@ export default function KonsinyasiPage() {
       case 'active': return { label: 'Aktif', variant: 'success' }
       case 'completed': return { label: 'Selesai', variant: 'info' }
       case 'withdrawn': return { label: 'Ditarik', variant: 'warning' }
-      default: return { label: status, variant: 'default' }
+      default: return { label: status || 'Tidak diketahui', variant: 'default' }
     }
+  }
+
+  const handleUpdateStatus = async (id, newStatus) => {
+    await updateConsignmentStatus(id, newStatus)
+    fetchConsignments()
+    setSelectedConsignment(null)
   }
 
   return (
@@ -81,34 +114,35 @@ export default function KonsinyasiPage() {
         />
       </div>
 
-      {filteredConsignments.length > 0 ? (
+      {loading ? (
+        <div className={styles.emptyState}>Memuat data...</div>
+      ) : filteredConsignments.length > 0 ? (
         <div className={styles.cardGrid}>
           {filteredConsignments.map(con => {
             const statusProps = getStatusProps(con.status)
             return (
               <div key={con.id} className={styles.conCard} onClick={() => setSelectedConsignment(con)}>
                 <div className={styles.conCardHeader}>
-                  <div className={styles.conId}>{con.id}</div>
+                  <div className={styles.conId}>{con.consignment_code}</div>
                   <Badge variant={statusProps.variant}>{statusProps.label}</Badge>
                 </div>
-                <div className={styles.conOwner}>{con.ownerName}</div>
+                <div className={styles.conOwner}>{con.owner_name}</div>
                 <div className={styles.conDates}>
-                  📅 {formatDate(con.startDate)} - {formatDate(con.endDate)}
+                  📅 {formatDate(con.start_date)} - {formatDate(con.end_date)}
                 </div>
                 
                 <div className={styles.conItems}>
-                  {con.items.map((item, idx) => {
-                    const itemData = getItemById(item.itemId)
-                    const percentSold = (item.soldQty / item.receivedQty) * 100
+                  {(con.consignment_items || []).map((item, idx) => {
+                    const percentSold = (item.sold_qty / item.received_qty) * 100
                     return (
                       <div key={idx} className={styles.conItemRow}>
-                        <div className={styles.conItemName}>{itemData?.name}</div>
+                        <div className={styles.conItemName}>{item.items?.name || 'Barang'}</div>
                         <div className={styles.conItemProgress}>
-                          <div className={styles.progressText}>{item.soldQty}/{item.receivedQty}</div>
+                          <div className={styles.progressText}>{item.sold_qty || 0}/{item.received_qty || 0}</div>
                           <div className={styles.progressBar}>
                             <div 
                               className={styles.progressFill} 
-                              style={{ width: `${Math.min(100, percentSold)}%` }}
+                              style={{ width: `${Math.min(100, percentSold || 0)}%` }}
                             />
                           </div>
                         </div>
@@ -132,14 +166,14 @@ export default function KonsinyasiPage() {
       <Modal 
         isOpen={!!selectedConsignment} 
         onClose={() => setSelectedConsignment(null)} 
-        title={`Detail Konsinyasi: ${selectedConsignment?.id}`}
+        title={`Detail Konsinyasi: ${selectedConsignment?.consignment_code || ''}`}
       >
         {selectedConsignment && (
           <div>
             <div className={styles.detailGrid}>
               <div>
                 <div className={styles.detailLabel}>Pemilik</div>
-                <div className={styles.detailValue}>{selectedConsignment.ownerName}</div>
+                <div className={styles.detailValue}>{selectedConsignment.owner_name}</div>
               </div>
               <div>
                 <div className={styles.detailLabel}>Status</div>
@@ -151,38 +185,34 @@ export default function KonsinyasiPage() {
               </div>
               <div>
                 <div className={styles.detailLabel}>Tanggal Masuk</div>
-                <div className={styles.detailValue}>{formatDate(selectedConsignment.startDate)}</div>
+                <div className={styles.detailValue}>{formatDate(selectedConsignment.start_date)}</div>
               </div>
               <div>
                 <div className={styles.detailLabel}>Tanggal Berakhir</div>
-                <div className={styles.detailValue}>{formatDate(selectedConsignment.endDate)}</div>
+                <div className={styles.detailValue}>{formatDate(selectedConsignment.end_date)}</div>
               </div>
             </div>
 
             <div style={{ marginTop: '24px' }}>
               <div className={styles.detailLabel} style={{ marginBottom: '12px' }}>Daftar Barang</div>
               <DataTable 
-                data={selectedConsignment.items}
+                data={selectedConsignment.consignment_items || []}
                 columns={[
                   { 
                     header: 'Barang', 
-                    accessor: (item) => getItemById(item.itemId)?.name || item.itemId
+                    accessor: (item) => item.items?.name || '-'
                   },
                   { 
                     header: 'Jumlah Diterima', 
-                    accessor: (item) => {
-                      const itemData = getItemById(item.itemId)
-                      const uom = getUomById(itemData?.baseUom)
-                      return `${formatNumber(item.receivedQty)} ${uom?.symbol || ''}`
-                    }
+                    accessor: (item) => `${formatNumber(item.received_qty)}`
                   },
                   { 
                     header: 'Terjual', 
-                    accessor: (item) => formatNumber(item.soldQty)
+                    accessor: (item) => formatNumber(item.sold_qty)
                   },
                   { 
                     header: 'Sisa', 
-                    accessor: (item) => formatNumber(item.receivedQty - item.soldQty)
+                    accessor: (item) => formatNumber((item.received_qty || 0) - (item.sold_qty || 0))
                   }
                 ]}
               />
@@ -196,6 +226,11 @@ export default function KonsinyasiPage() {
                 </div>
               </div>
             )}
+
+            <div style={{ marginTop: '24px', display: 'flex', gap: '10px' }}>
+              <button onClick={() => handleUpdateStatus(selectedConsignment.id, 'completed')}>Tandai Selesai</button>
+              <button onClick={() => handleUpdateStatus(selectedConsignment.id, 'withdrawn')}>Tarik</button>
+            </div>
           </div>
         )}
       </Modal>

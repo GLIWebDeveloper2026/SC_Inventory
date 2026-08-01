@@ -4,19 +4,25 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import styles from './Header.module.css';
-import { notifications, items, users, receipts, issues } from '@/lib/dummy-data';
+import { getNotifications, markAsRead, markAllAsRead } from '@/app/actions/notifications';
+import { useAuth } from '@/contexts/AuthContext';
+import { signOut } from '@/app/actions/auth';
+import { getItems } from '@/app/actions/items';
+import { getUsers } from '@/app/actions/users';
 
 export default function Header({ title, subtitle }) {
   const router = useRouter();
+  const { user, refreshUser } = useAuth();
 
   // ── Search state ────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
   const searchRef = useRef(null);
 
   // ── Notification state ──────────────────────────────────────
   const [notifOpen, setNotifOpen] = useState(false);
-  const [notifList, setNotifList] = useState(notifications);
+  const [notifList, setNotifList] = useState([]);
   const notifRef = useRef(null);
 
   // ── Profile state ───────────────────────────────────────────
@@ -25,35 +31,75 @@ export default function Header({ title, subtitle }) {
 
   const unreadCount = notifList.filter(n => !n.read).length;
 
+  const fetchNotifs = async () => {
+    try {
+      const res = await getNotifications();
+      if (res?.data) setNotifList(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifs();
+  }, []);
+
   // ── Global search logic ─────────────────────────────────────
-  const searchResults = searchQuery.trim().length > 1 ? (() => {
-    const q = searchQuery.toLowerCase();
-    const matchedItems = items
-      .filter(i => i.name.toLowerCase().includes(q) || i.code.toLowerCase().includes(q))
-      .slice(0, 4)
-      .map(i => ({ type: 'Barang', label: i.name, sub: i.code, href: '/inventori' }));
-
-    const matchedTx = [...receipts, ...(issues || [])]
-      .filter(t => t.id?.toLowerCase().includes(q) || t.supplier?.toLowerCase().includes(q) || t.destination?.toLowerCase().includes(q))
-      .slice(0, 3)
-      .map(t => ({ type: 'Transaksi', label: t.id, sub: t.supplier || t.destination || '', href: t.supplier ? '/transaksi/penerimaan' : '/transaksi/pengeluaran' }));
-
-    const matchedUsers = users
-      .filter(u => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
-      .slice(0, 2)
-      .map(u => ({ type: 'Pengguna', label: u.name, sub: u.email, href: '/pengguna' }));
-
-    return [...matchedItems, ...matchedTx, ...matchedUsers];
-  })() : [];
+  useEffect(() => {
+    const doSearch = async () => {
+      if (searchQuery.trim().length > 1) {
+        try {
+          const [itemsRes, usersRes] = await Promise.all([getItems(), getUsers()]);
+          const q = searchQuery.toLowerCase();
+          
+          const matchedItems = (itemsRes?.data || [])
+            .filter(i => (i.name || '').toLowerCase().includes(q) || (i.code || '').toLowerCase().includes(q))
+            .slice(0, 4)
+            .map(i => ({ type: 'Barang', label: i.name, sub: i.code, href: '/inventori' }));
+          
+          const matchedUsers = (usersRes?.data || [])
+            .filter(u => (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q))
+            .slice(0, 2)
+            .map(u => ({ type: 'Pengguna', label: u.name, sub: u.email, href: '/pengguna' }));
+            
+          setSearchResults([...matchedItems, ...matchedUsers]);
+        } catch (e) {
+          console.error(e);
+        }
+      } else {
+        setSearchResults([]);
+      }
+    };
+    
+    const timeout = setTimeout(doSearch, 300);
+    return () => clearTimeout(timeout);
+  }, [searchQuery]);
 
   // ── Mark notification as read ───────────────────────────────
-  const markRead = (id) => {
-    setNotifList(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  const markRead = async (id) => {
+    await markAsRead(id);
+    fetchNotifs();
   };
 
-  const markAllRead = () => {
-    setNotifList(prev => prev.map(n => ({ ...n, read: true })));
+  const markAllRead = async () => {
+    await markAllAsRead();
+    fetchNotifs();
   };
+  
+  const handleLogout = async () => {
+    await signOut();
+    await refreshUser();
+    router.push('/login');
+  };
+
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    const parts = name.split(' ');
+    if (parts.length > 1) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  const initials = getInitials(user?.name);
 
   // ── Close dropdowns on outside click ───────────────────────
   useEffect(() => {
@@ -112,7 +158,7 @@ export default function Header({ title, subtitle }) {
         ) : (
           <div className={styles.greeting}>
             <span className={styles.greetingText}>Selamat datang, </span>
-            <span className={styles.greetingName}>Budi Santoso</span>
+            <span className={styles.greetingName}>{user?.name || 'Pengguna'}</span>
           </div>
         )}
       </div>
@@ -127,7 +173,7 @@ export default function Header({ title, subtitle }) {
           </svg>
           <input
             type="text"
-            placeholder="Cari barang, transaksi, anggota..."
+            placeholder="Cari barang, pengguna..."
             className={styles.searchInput}
             value={searchQuery}
             onChange={e => { setSearchQuery(e.target.value); setSearchOpen(true); }}
@@ -180,23 +226,27 @@ export default function Header({ title, subtitle }) {
                 )}
               </div>
               <div className={styles.notifList}>
-                {notifList.map(n => (
-                  <div
-                    key={n.id}
-                    className={`${styles.notifItem} ${!n.read ? styles.notifUnread : ''}`}
-                    onClick={() => markRead(n.id)}
-                  >
-                    <div className={styles.notifIconWrap} style={{ color: notifColor[n.type], backgroundColor: `${notifColor[n.type]}18` }}>
-                      {notifIcon(n.type)}
+                {notifList.length === 0 ? (
+                  <div className={styles.notifEmpty}>Tidak ada notifikasi</div>
+                ) : (
+                  notifList.map(n => (
+                    <div
+                      key={n.id}
+                      className={`${styles.notifItem} ${!n.read ? styles.notifUnread : ''}`}
+                      onClick={() => markRead(n.id)}
+                    >
+                      <div className={styles.notifIconWrap} style={{ color: notifColor[n.type] || notifColor.info, backgroundColor: `${notifColor[n.type] || notifColor.info}18` }}>
+                        {notifIcon(n.type)}
+                      </div>
+                      <div className={styles.notifContent}>
+                        <div className={styles.notifTitle}>{n.title}</div>
+                        <div className={styles.notifMessage}>{n.message}</div>
+                        <div className={styles.notifDate}>{n.created_at ? new Date(n.created_at).toLocaleString('id-ID') : '-'}</div>
+                      </div>
+                      {!n.read && <div className={styles.unreadDot} />}
                     </div>
-                    <div className={styles.notifContent}>
-                      <div className={styles.notifTitle}>{n.title}</div>
-                      <div className={styles.notifMessage}>{n.message}</div>
-                      <div className={styles.notifDate}>{n.date}</div>
-                    </div>
-                    {!n.read && <div className={styles.unreadDot} />}
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -208,10 +258,10 @@ export default function Header({ title, subtitle }) {
             className={`${styles.userProfile} ${profileOpen ? styles.userProfileActive : ''}`}
             onClick={() => { setProfileOpen(!profileOpen); setNotifOpen(false); }}
           >
-            <div className={styles.avatar}>BS</div>
+            <div className={styles.avatar}>{initials}</div>
             <div className={styles.userInfo}>
-              <div className={styles.userName}>Budi Santoso</div>
-              <div className={styles.userRole}>Admin</div>
+              <div className={styles.userName}>{user?.name || 'Pengguna'}</div>
+              <div className={styles.userRole}>{user?.role?.name || 'User'}</div>
             </div>
             <svg className={`${styles.chevronIcon} ${profileOpen ? styles.chevronUp : ''}`} viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="6 9 12 15 18 9"/>
@@ -221,11 +271,11 @@ export default function Header({ title, subtitle }) {
           {profileOpen && (
             <div className={styles.profileDropdown}>
               <div className={styles.profileHeader}>
-                <div className={styles.profileAvatar}>BS</div>
+                <div className={styles.profileAvatar}>{initials}</div>
                 <div>
-                  <div className={styles.profileName}>Budi Santoso</div>
-                  <div className={styles.profileEmail}>budi.santoso@gudangtani.id</div>
-                  <span className={styles.profileBadge}>Administrator</span>
+                  <div className={styles.profileName}>{user?.name || 'Pengguna'}</div>
+                  <div className={styles.profileEmail}>{user?.email || ''}</div>
+                  <span className={styles.profileBadge}>{user?.role?.name || 'User'}</span>
                 </div>
               </div>
               <div className={styles.profileMenu}>
@@ -244,7 +294,7 @@ export default function Header({ title, subtitle }) {
                 </Link>
               </div>
               <div className={styles.profileFooter}>
-                <button className={styles.logoutBtn} onClick={() => alert('Fitur logout akan tersedia setelah integrasi backend.')}>
+                <button className={styles.logoutBtn} onClick={handleLogout}>
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                     <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>

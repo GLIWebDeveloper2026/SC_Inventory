@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState } from 'react';
-import { returns, getItemById, getUomById, getUserById, formatCurrency, formatDate, formatNumber } from '@/lib/dummy-data';
+import React, { useState, useEffect } from 'react';
+import { getReturns, createReturn, finalizeReturn, deleteReturn } from '@/app/actions/returns';
+import { getItems } from '@/app/actions/items';
 import Header from '@/components/layout/Header';
 import DataTable from '@/components/ui/DataTable';
 import Badge from '@/components/ui/Badge';
@@ -10,28 +11,78 @@ import SearchBar from '@/components/ui/SearchBar';
 import CustomSelect from '@/components/ui/CustomSelect';
 import styles from './retur.module.css';
 
+const formatNumber = (num) => new Intl.NumberFormat('id-ID').format(num || 0);
+const formatCurrency = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num || 0);
+const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString('id-ID') : '-';
+
 export default function ReturPage() {
+  const [returnsList, setReturnsList] = useState([]);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Semua');
   const [selectedReturn, setSelectedReturn] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
+  // Form State
+  const [formData, setFormData] = useState({ party: '', type: 'customer', reason: '', date: '', notes: '' });
+  const [formItems, setFormItems] = useState([{ item_id: '', qty: 0, price: 0 }]);
+
+  async function loadData() {
+    setLoading(true);
+    const [returnsRes, itemsRes] = await Promise.all([
+      getReturns(),
+      getItems()
+    ]);
+    setReturnsList(returnsRes?.data || []);
+    setItems(itemsRes?.data || []);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
   // Filter logic
-  const filteredReturns = returns.filter(ret => {
-    const matchesSearch = ret.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          ret.party.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredReturns = returnsList.filter(ret => {
+    const matchesSearch = ret.return_code?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          ret.party?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'Semua' || ret.status === statusFilter.toLowerCase();
     return matchesSearch && matchesStatus;
   });
 
   // Summary
-  const totalRetur = returns.length;
-  const returPelanggan = returns.filter(r => r.type === 'customer').length;
-  const returSupplier = returns.filter(r => r.type === 'supplier').length;
-  const totalDraft = returns.filter(r => r.status === 'draft').length;
+  const totalRetur = returnsList.length;
+  const returPelanggan = returnsList.filter(r => r.type === 'customer').length;
+  const returSupplier = returnsList.filter(r => r.type === 'supplier').length;
+  const totalDraft = returnsList.filter(r => r.status === 'draft').length;
+
+  const handleCreate = async (status) => {
+    const payload = {
+      ...formData,
+      status,
+      return_items: formItems.map(item => ({
+        item_id: item.item_id,
+        qty: Number(item.qty),
+        price: Number(item.price)
+      }))
+    };
+    await createReturn(payload);
+    setIsAddModalOpen(false);
+    setFormData({ party: '', type: 'customer', reason: '', date: '', notes: '' });
+    setFormItems([{ item_id: '', qty: 0, price: 0 }]);
+    loadData();
+  };
+
+  const handleFinalize = async (id) => {
+    await finalizeReturn(id);
+    setSelectedReturn(null);
+    loadData();
+  };
 
   const columns = [
-    { key: 'id', label: 'No. Transaksi' },
+    { key: 'return_code', label: 'No. Transaksi' },
     { key: 'date', label: 'Tanggal', render: (val) => formatDate(val) },
     { key: 'party', label: 'Pihak' },
     { key: 'type', label: 'Tipe', render: (val) => (
@@ -56,19 +107,19 @@ export default function ReturPage() {
 
       <div className={styles.summaryRow}>
         <div className={styles.summaryCard}>
-          <div className={styles.summaryValue}>{totalRetur}</div>
+          <div className={styles.summaryValue}>{loading ? '...' : totalRetur}</div>
           <div className={styles.summaryLabel}>Total Retur</div>
         </div>
         <div className={styles.summaryCard}>
-          <div className={styles.summaryValue}>{returPelanggan}</div>
+          <div className={styles.summaryValue}>{loading ? '...' : returPelanggan}</div>
           <div className={styles.summaryLabel}>Retur Pelanggan</div>
         </div>
         <div className={styles.summaryCard}>
-          <div className={styles.summaryValue}>{returSupplier}</div>
+          <div className={styles.summaryValue}>{loading ? '...' : returSupplier}</div>
           <div className={styles.summaryLabel}>Retur ke Supplier</div>
         </div>
         <div className={styles.summaryCard}>
-          <div className={styles.summaryValue}>{totalDraft}</div>
+          <div className={styles.summaryValue}>{loading ? '...' : totalDraft}</div>
           <div className={styles.summaryLabel}>Draft</div>
         </div>
       </div>
@@ -98,12 +149,16 @@ export default function ReturPage() {
         </button>
       </div>
 
-      <DataTable 
-        columns={columns} 
-        data={filteredReturns} 
-        onRowClick={(row) => setSelectedReturn(row)}
-        emptyMessage="Tidak ada data retur yang ditemukan"
-      />
+      {loading ? (
+        <div style={{ padding: '20px', textAlign: 'center', color: '#6b7c6b' }}>Memuat data retur...</div>
+      ) : (
+        <DataTable 
+          columns={columns} 
+          data={filteredReturns} 
+          onRowClick={(row) => setSelectedReturn(row)}
+          emptyMessage="Tidak ada data retur yang ditemukan"
+        />
+      )}
 
       <Modal 
         isOpen={!!selectedReturn} 
@@ -117,7 +172,7 @@ export default function ReturPage() {
               <div className={styles.detailGrid}>
                 <div>
                   <div className={styles.detailLabel}>No. Transaksi</div>
-                  <div className={styles.detailValue}>{selectedReturn.id}</div>
+                  <div className={styles.detailValue}>{selectedReturn.return_code}</div>
                 </div>
                 <div>
                   <div className={styles.detailLabel}>Tanggal</div>
@@ -147,23 +202,19 @@ export default function ReturPage() {
                 <tr style={{ borderBottom: '1px solid #ddd', textAlign: 'left' }}>
                   <th style={{ padding: '8px' }}>Barang</th>
                   <th style={{ padding: '8px' }}>Qty</th>
-                  <th style={{ padding: '8px' }}>UOM</th>
                   <th style={{ padding: '8px' }}>Harga</th>
                   <th style={{ padding: '8px' }}>Subtotal</th>
                   <th style={{ padding: '8px' }}>Catatan</th>
                 </tr>
               </thead>
               <tbody>
-                {selectedReturn.items.map((item, idx) => {
-                  const itemData = getItemById(item.itemId);
-                  const uomData = itemData ? getUomById(itemData.uomId) : null;
+                {(selectedReturn.return_items || []).map((item, idx) => {
                   return (
                     <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={{ padding: '8px' }}>{itemData?.name || 'Unknown'}</td>
+                      <td style={{ padding: '8px' }}>{item.items?.name || 'Tidak diketahui'}</td>
                       <td style={{ padding: '8px' }}>{formatNumber(item.qty)}</td>
-                      <td style={{ padding: '8px' }}>{uomData?.symbol || ''}</td>
                       <td style={{ padding: '8px' }}>{formatCurrency(item.price)}</td>
-                      <td style={{ padding: '8px' }}>{formatCurrency(item.subtotal)}</td>
+                      <td style={{ padding: '8px' }}>{formatCurrency((item.qty || 0) * (item.price || 0))}</td>
                       <td style={{ padding: '8px' }}>{item.notes || '-'}</td>
                     </tr>
                   )
@@ -174,6 +225,13 @@ export default function ReturPage() {
             <div style={{ marginTop: '20px', textAlign: 'right', fontWeight: 'bold' }}>
               Total: {formatCurrency(selectedReturn.total)}
             </div>
+            {selectedReturn.status === 'draft' && (
+               <div style={{ marginTop: '20px', textAlign: 'right' }}>
+                 <button className={styles.btnFinalize} onClick={() => handleFinalize(selectedReturn.id)}>
+                   Finalisasi Transaksi
+                 </button>
+               </div>
+            )}
           </div>
         )}
       </Modal>
@@ -188,19 +246,23 @@ export default function ReturPage() {
           <div className={styles.detailGrid}>
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Pihak (Pelanggan/Supplier)</label>
-              <input type="text" className={styles.formInput} placeholder="Nama pihak" />
+              <input type="text" className={styles.formInput} placeholder="Nama pihak" value={formData.party} onChange={e => setFormData({...formData, party: e.target.value})} />
             </div>
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Tipe Retur</label>
-              <select className={styles.formInput}>
+              <select className={styles.formInput} value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}>
                 <option value="customer">Dari Pelanggan</option>
                 <option value="supplier">Ke Supplier</option>
               </select>
             </div>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Tanggal</label>
+              <input type="date" className={styles.formInput} value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+            </div>
           </div>
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>Alasan</label>
-            <textarea className={styles.formTextarea} placeholder="Alasan retur..."></textarea>
+            <textarea className={styles.formTextarea} placeholder="Alasan retur..." value={formData.reason} onChange={e => setFormData({...formData, reason: e.target.value})}></textarea>
           </div>
           
           <div style={{ marginTop: '20px' }}>
@@ -210,24 +272,42 @@ export default function ReturPage() {
                 <tr style={{ borderBottom: '1px solid #ddd', textAlign: 'left' }}>
                   <th style={{ padding: '8px' }}>Barang</th>
                   <th style={{ padding: '8px' }}>Qty</th>
-                  <th style={{ padding: '8px' }}>UOM</th>
                   <th style={{ padding: '8px' }}>Harga</th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td style={{ padding: '8px' }}><select className={styles.formInput}><option>Pilih barang...</option></select></td>
-                  <td style={{ padding: '8px' }}><input type="number" className={styles.formInput} placeholder="0" /></td>
-                  <td style={{ padding: '8px' }}><input type="text" className={styles.formInput} placeholder="Kg" readOnly style={{backgroundColor: '#f5f5f5'}} /></td>
-                  <td style={{ padding: '8px' }}><input type="number" className={styles.formInput} placeholder="0" /></td>
-                </tr>
+                {formItems.map((fi, i) => (
+                  <tr key={i}>
+                    <td style={{ padding: '8px' }}>
+                      <select className={styles.formInput} value={fi.item_id} onChange={e => {
+                        const newItems = [...formItems];
+                        newItems[i].item_id = e.target.value;
+                        setFormItems(newItems);
+                      }}>
+                        <option value="">Pilih barang...</option>
+                        {items.map(it => <option key={it.id} value={it.id}>{it.name}</option>)}
+                      </select>
+                    </td>
+                    <td style={{ padding: '8px' }}><input type="number" className={styles.formInput} placeholder="0" value={fi.qty} onChange={e => {
+                        const newItems = [...formItems];
+                        newItems[i].qty = e.target.value;
+                        setFormItems(newItems);
+                      }} /></td>
+                    <td style={{ padding: '8px' }}><input type="number" className={styles.formInput} placeholder="0" value={fi.price} onChange={e => {
+                        const newItems = [...formItems];
+                        newItems[i].price = e.target.value;
+                        setFormItems(newItems);
+                      }} /></td>
+                  </tr>
+                ))}
               </tbody>
             </table>
+            <button type="button" onClick={() => setFormItems([...formItems, { item_id: '', qty: 0, price: 0 }])} style={{ marginTop: '8px', padding: '4px 8px' }}>+ Tambah Baris</button>
           </div>
 
           <div className={styles.formActions}>
-            <button className={styles.btnDraft} onClick={() => setIsAddModalOpen(false)}>Simpan as Draft</button>
-            <button className={styles.btnFinalize} onClick={() => setIsAddModalOpen(false)}>Finalisasi</button>
+            <button className={styles.btnDraft} onClick={() => handleCreate('draft')}>Simpan as Draft</button>
+            <button className={styles.btnFinalize} onClick={() => handleCreate('final')}>Finalisasi</button>
           </div>
         </div>
       </Modal>

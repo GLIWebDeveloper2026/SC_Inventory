@@ -8,7 +8,7 @@
 .dateLabel { font-size: 0.8125rem; color: #6b7c6b; font-weight: 500; }
 .dateInput { padding: 10px 14px; border-radius: 8px; border: 1px solid #e0e0e0; font-size: 0.875rem; background: white; }
 .dateInput:focus { border-color: #4CAF50; outline: none; }
-.searchInput { padding: 10px 14px; border-radius: 8px; border: 1px solid #e0e0e0; font-size: 0.875rem; flex: 1; min-width: 200px; background: white; }
+.searchInput { padding: 10px 16px 10px 42px !important; border-radius: 8px; border: 1px solid #e0e0e0; font-size: 0.875rem; flex: 1; min-width: 200px; background: white; }
 .searchInput:focus { border-color: #4CAF50; outline: none; }
 .exportRow { display: flex; gap: 12px; margin-bottom: 24px; }
 .exportBtn { padding: 10px 20px; border-radius: 8px; border: 1px solid #e0e0e0; background: white; cursor: pointer; font-size: 0.8125rem; font-weight: 500; display: flex; align-items: center; gap: 8px; transition: all 0.2s; color: #1a3a2a; }

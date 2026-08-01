@@ -1,5 +1,4 @@
 import styles from './dashboard.module.css';
-import { auditLogs, getUserById } from '@/lib/dummy-data';
 
 const getActionColor = (action) => {
   switch(action) {
@@ -11,31 +10,50 @@ const getActionColor = (action) => {
   }
 };
 
-export default function RecentActivity() {
-  const recentLogs = [...auditLogs]
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+const getActionText = (action) => {
+  switch(action) {
+    case 'CREATE': return 'membuat';
+    case 'UPDATE': return 'memperbarui';
+    case 'FINALIZE': return 'memfinalisasi';
+    case 'DELETE': return 'menghapus';
+    default: return action?.toLowerCase() || '';
+  }
+};
+
+export default function RecentActivity({ data: recentLogs = [] }) {
+  if (!recentLogs || recentLogs.length === 0) {
+    return (
+      <div className={styles.activityCard}>
+        <h3 className={styles.chartTitle}>Aktivitas Terkini</h3>
+        <div style={{ padding: '1rem', textAlign: 'center', color: '#6b7c6b' }}>
+          Tidak ada aktivitas.
+        </div>
+      </div>
+    );
+  }
+
+  const sortedLogs = [...recentLogs]
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, 8);
 
   return (
     <div className={styles.activityCard}>
-      <h3 className={styles.chartTitle}>Recent Activity</h3>
+      <h3 className={styles.chartTitle}>Aktivitas Terkini</h3>
       <div className={styles.activityList}>
-        {recentLogs.map((log, index) => {
-          const user = getUserById(log.userId);
+        {sortedLogs.map((log, index) => {
           const color = getActionColor(log.action);
-          
           
           return (
             <div key={log.id} className={styles.activityItem}>
               <div className={styles.activityDot} style={{ backgroundColor: color }} />
-              {index < recentLogs.length - 1 && <div className={styles.activityLine} />}
+              {index < sortedLogs.length - 1 && <div className={styles.activityLine} />}
               <div className={styles.activityContent}>
                 <div className={styles.activityDetail}>
-                  <strong>{user?.name || 'Unknown'}</strong> {log.action.toLowerCase()} {log.module}
-                  {log.details && `: ${log.details}`}
+                  <strong>{log.users?.name || 'Tidak diketahui'}</strong> {getActionText(log.action)} {log.table_name}
+                  {log.record_id && `: ${log.record_id}`}
                 </div>
                 <div className={styles.activityMeta}>
-                  {log.timestamp}
+                  {new Date(log.created_at).toLocaleString('id-ID')}
                 </div>
               </div>
             </div>

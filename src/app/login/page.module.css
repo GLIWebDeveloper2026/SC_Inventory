@@ -1,0 +1,150 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1f4f2c 0%, #2e7d32 100%);
+  padding: 1rem;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 24px;
+  padding: 3rem 2.5rem;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  transform: translateY(0);
+  transition: transform 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.title {
+  color: #1f4f2c;
+  font-size: 2.25rem;
+  font-weight: 800;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  color: #666;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.tabContainer {
+  display: flex;
+  background: #e5e7eb;
+  padding: 4px;
+  border-radius: 14px;
+  margin-bottom: 1.5rem;
+}
+
+.tabButton {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6b7280;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.activeTab {
+  background: #ffffff;
+  color: #1f4f2c;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.success {
+  background: #dcfce7;
+  color: #15803d;
+  padding: 1rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  text-align: center;
+  border: 1px solid #bbf7d0;
+}
+
+.error {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 1rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  text-align: center;
+  border: 1px solid #fecaca;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  color: #374151;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.input {
+  padding: 0.875rem 1rem;
+  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  outline: none;
+  background: #f9fafb;
+}
+
+.input:focus {
+  border-color: #2e7d32;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(46, 125, 50, 0.1);
+}
+
+.button {
+  background: linear-gradient(to right, #1f4f2c, #2e7d32);
+  color: white;
+  padding: 1rem;
+  border-radius: 12px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 0.5rem;
+}
+
+.button:hover:not(:disabled) {
+  background: linear-gradient(to right, #1b4526, #256528);
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+}
+
+.button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

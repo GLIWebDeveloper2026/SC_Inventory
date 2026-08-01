@@ -13,7 +13,6 @@ import {
   Filler
 } from 'chart.js';
 import styles from './dashboard.module.css';
-import { stockMovements } from '@/lib/dummy-data';
 
 ChartJS.register(
   CategoryScale,
@@ -26,23 +25,32 @@ ChartJS.register(
   Filler
 );
 
-export default function StockChart() {
-  const last7 = stockMovements.slice(-7);
-  
-  const data = {
-    labels: last7.map(m => m.date.substring(0, 10)),
+export default function StockChart({ data: propData }) {
+  if (!propData || propData.length === 0) {
+    return (
+      <div className={styles.chartCard}>
+        <h3 className={styles.chartTitle}>Pergerakan Stok (7 Hari Terakhir)</h3>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+          Belum ada data
+        </div>
+      </div>
+    );
+  }
+
+  const chartData = {
+    labels: propData.map(m => m.date.substring(0, 10)),
     datasets: [
       {
-        label: 'Incoming',
-        data: last7.map(m => m.type === 'IN' ? m.qty : 0),
+        label: 'Stok Masuk',
+        data: propData.map(m => m.incoming),
         borderColor: '#4CAF50',
         backgroundColor: 'rgba(76, 175, 80, 0.2)',
         fill: true,
         tension: 0.4,
       },
       {
-        label: 'Outgoing',
-        data: last7.map(m => m.type === 'OUT' ? m.qty : 0),
+        label: 'Stok Keluar',
+        data: propData.map(m => m.outgoing),
         borderColor: '#F44336',
         backgroundColor: 'rgba(244, 67, 54, 0.2)',
         fill: true,
@@ -75,9 +83,9 @@ export default function StockChart() {
 
   return (
     <div className={styles.chartCard}>
-      <h3 className={styles.chartTitle}>Stock Movement (7 Days)</h3>
+      <h3 className={styles.chartTitle}>Pergerakan Stok (7 Hari Terakhir)</h3>
       <div className={styles.chartWrapper}>
-        <Line data={data} options={options} />
+        <Line data={chartData} options={options} />
       </div>
     </div>
   );

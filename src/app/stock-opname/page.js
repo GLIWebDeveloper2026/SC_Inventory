@@ -1,15 +1,40 @@
 'use client';
 
-import { useState } from 'react';
-import { stockOpnames, getItemById, getUomById, getUserById, formatDate, formatNumber } from '@/lib/dummy-data';
+import { useState, useEffect } from 'react';
+import { getStockOpnames, createStockOpname, finalizeStockOpname } from '@/app/actions/stock-opname';
 import Header from '@/components/layout/Header';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import styles from './stock-opname.module.css';
 
+const formatNumber = (num) => new Intl.NumberFormat('id-ID').format(num || 0)
+const formatDate = (dateString) => {
+  if (!dateString) return '-'
+  const date = new Date(dateString)
+  return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(date)
+}
+
 export default function StockOpnamePage() {
   const [selectedOpname, setSelectedOpname] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [stockOpnames, setStockOpnames] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchOpnames = async () => {
+    setLoading(true);
+    try {
+      const res = await getStockOpnames();
+      if (res?.data) setStockOpnames(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOpnames();
+  }, []);
 
   const filteredOpnames = stockOpnames.filter(op => {
     if (statusFilter === 'all') return true;
@@ -21,15 +46,21 @@ export default function StockOpnamePage() {
   const inProgressCount = stockOpnames.filter(op => op.status === 'in_progress').length;
 
   const totalNegDiff = stockOpnames.reduce((sum, op) => {
-    return sum + op.details.reduce((acc, d) => d.diff < 0 ? acc + d.diff : acc, 0);
+    return sum + (op.stock_opname_details || []).reduce((acc, d) => d.diff < 0 ? acc + d.diff : acc, 0);
   }, 0);
 
   const getStatusProps = (status) => {
     switch (status) {
       case 'completed': return { label: 'Selesai', variant: 'success' };
       case 'in_progress': return { label: 'Berjalan', variant: 'warning' };
-      default: return { label: status, variant: 'neutral' };
+      default: return { label: status || 'Tidak diketahui', variant: 'neutral' };
     }
+  };
+
+  const handleFinalize = async (id) => {
+    await finalizeStockOpname(id);
+    fetchOpnames();
+    setSelectedOpname(null);
   };
 
   return (
@@ -69,51 +100,55 @@ export default function StockOpnamePage() {
           ))}
         </div>
 
-        <div className={styles.sessionList}>
-          {filteredOpnames.map(op => {
-            const statusProps = getStatusProps(op.status);
-            const auditor = getUserById(op.auditor);
-            let matched = 0, negativeDiffs = 0, positiveDiffs = 0;
-            op.details.forEach(d => {
-              if (d.diff === 0) matched++;
-              else if (d.diff < 0) negativeDiffs++;
-              else positiveDiffs++;
-            });
+        {loading ? (
+          <div>Memuat data...</div>
+        ) : (
+          <div className={styles.sessionList}>
+            {filteredOpnames.map(op => {
+              const statusProps = getStatusProps(op.status);
+              const auditorName = op.users?.name || 'Tidak diketahui';
+              let matched = 0, negativeDiffs = 0, positiveDiffs = 0;
+              (op.stock_opname_details || []).forEach(d => {
+                if (d.diff === 0) matched++;
+                else if (d.diff < 0) negativeDiffs++;
+                else positiveDiffs++;
+              });
 
-            return (
-              <div key={op.id} className={styles.sessionCard} onClick={() => setSelectedOpname(op)}>
-                <div className={styles.sessionHeader}>
-                  <div>
-                    <div className={styles.sessionId}>{op.id}</div>
-                    <div className={styles.sessionDate}>{formatDate(op.date)}</div>
+              return (
+                <div key={op.id} className={styles.sessionCard} onClick={() => setSelectedOpname(op)}>
+                  <div className={styles.sessionHeader}>
+                    <div>
+                      <div className={styles.sessionId}>{op.opname_code}</div>
+                      <div className={styles.sessionDate}>{formatDate(op.date)}</div>
+                    </div>
+                    <Badge variant={statusProps.variant}>{statusProps.label}</Badge>
                   </div>
-                  <Badge variant={statusProps.variant}>{statusProps.label}</Badge>
+                  <div className={styles.sessionMeta}>
+                    <div className={styles.sessionMetaItem}>
+                      Auditor: <strong>{auditorName}</strong>
+                    </div>
+                    <div className={styles.sessionMetaItem}>
+                      Barang Diperiksa: <strong>{(op.stock_opname_details || []).length}</strong>
+                    </div>
+                    <div className={styles.sessionMetaItem}>
+                      Catatan: <strong>{op.notes}</strong>
+                    </div>
+                  </div>
+                  <div className={styles.diffSummary}>
+                    {matched > 0 && <div className={`${styles.diffItem} ${styles.diffZero}`}>Sesuai: {matched}</div>}
+                    {positiveDiffs > 0 && <div className={`${styles.diffItem} ${styles.diffPositive}`}>Lebih: {positiveDiffs}</div>}
+                    {negativeDiffs > 0 && <div className={`${styles.diffItem} ${styles.diffNegative}`}>Kurang: {negativeDiffs}</div>}
+                  </div>
                 </div>
-                <div className={styles.sessionMeta}>
-                  <div className={styles.sessionMetaItem}>
-                    Auditor: <strong>{auditor?.name || op.auditor}</strong>
-                  </div>
-                  <div className={styles.sessionMetaItem}>
-                    Barang Diperiksa: <strong>{op.details.length}</strong>
-                  </div>
-                  <div className={styles.sessionMetaItem}>
-                    Catatan: <strong>{op.notes}</strong>
-                  </div>
-                </div>
-                <div className={styles.diffSummary}>
-                  {matched > 0 && <div className={`${styles.diffItem} ${styles.diffZero}`}>Sesuai: {matched}</div>}
-                  {positiveDiffs > 0 && <div className={`${styles.diffItem} ${styles.diffPositive}`}>Lebih: {positiveDiffs}</div>}
-                  {negativeDiffs > 0 && <div className={`${styles.diffItem} ${styles.diffNegative}`}>Kurang: {negativeDiffs}</div>}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
         <Modal
           isOpen={!!selectedOpname}
           onClose={() => setSelectedOpname(null)}
-          title={`Detail Opname: ${selectedOpname?.id || ''}`}
+          title={`Detail Opname: ${selectedOpname?.opname_code || ''}`}
           size="lg"
         >
           {selectedOpname && (
@@ -126,7 +161,7 @@ export default function StockOpnamePage() {
                 <div>
                   <div className={styles.detailLabel}>Auditor</div>
                   <div className={styles.detailValue}>
-                    {getUserById(selectedOpname.auditor)?.name || selectedOpname.auditor}
+                    {selectedOpname.users?.name || 'Tidak diketahui'}
                   </div>
                 </div>
                 <div>
@@ -150,20 +185,17 @@ export default function StockOpnamePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedOpname.details.map((detail, idx) => {
-                    const itemData = getItemById(detail.itemId);
-                    const uom = getUomById(itemData?.baseUom);
-                    const uomSymbol = uom?.symbol || '';
+                  {(selectedOpname.stock_opname_details || []).map((detail, idx) => {
                     const diffClass = detail.diff < 0 ? styles.diffNegative : detail.diff > 0 ? styles.diffPositive : styles.diffZero;
 
                     return (
                       <tr key={idx}>
-                        <td>{itemData?.name || detail.itemId}</td>
-                        <td>{formatNumber(detail.systemQty)} {uomSymbol}</td>
-                        <td>{formatNumber(detail.physicalQty)} {uomSymbol}</td>
+                        <td>{detail.items?.name || 'Barang'}</td>
+                        <td>{formatNumber(detail.system_qty)}</td>
+                        <td>{formatNumber(detail.physical_qty)}</td>
                         <td>
                           <span className={`${styles.diffItem} ${diffClass}`} style={{ display: 'inline-block' }}>
-                            {detail.diff > 0 ? '+' : ''}{formatNumber(detail.diff)} {uomSymbol}
+                            {detail.diff > 0 ? '+' : ''}{formatNumber(detail.diff)}
                           </span>
                         </td>
                         <td>{detail.reason}</td>
@@ -172,6 +204,12 @@ export default function StockOpnamePage() {
                   })}
                 </tbody>
               </table>
+
+              {selectedOpname.status !== 'completed' && (
+                 <div style={{ marginTop: '20px' }}>
+                   <button onClick={() => handleFinalize(selectedOpname.id)}>Finalisasi</button>
+                 </div>
+              )}
             </div>
           )}
         </Modal>

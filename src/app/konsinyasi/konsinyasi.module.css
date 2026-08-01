@@ -6,7 +6,7 @@
 .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 16px; flex-wrap: wrap; }
 .searchWrapper { position: relative; flex: 1; min-width: 240px; max-width: 400px; }
 .searchIcon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #6b7c6b; }
-.searchInput { width: 100%; padding: 10px 16px 10px 42px; border-radius: 10px; border: 1px solid #e0e0e0; font-size: 0.875rem; background: white; }
+.searchInput { width: 100%; padding: 10px 16px 10px 42px !important; border-radius: 10px; border: 1px solid #e0e0e0; font-size: 0.875rem; background: white; }
 .searchInput:focus { border-color: #4CAF50; outline: none; box-shadow: 0 0 0 3px rgba(76,175,80,0.1); }
 .filterSelect { min-width: 160px; }
 .cardGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 20px; }
